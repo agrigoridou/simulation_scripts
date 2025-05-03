@@ -35,37 +35,36 @@ Make sure the following dependencies are installed:
 Required Python packages:
 
 For **AirSim**:
-bash
+ ```bash
 pip install airsim numpy opencv-python
-
+ ```
 ## How to Run
  
 ### For AirSim:
-
+ ```bash
 cd ~/UnrealEngine4.27/UnrealEngine 
-
 ./Engine/Binaries/Linux/UE4Editor ~/AirSim/Unreal/Environments/Blocks/Blocks.uproject
-
+ ```
 
 ### For AirSimNH:
-
+ ```bash
 cd AirSimNH/LinuxNoEditor
 ./AirSimNH.sh -ResX=640 -ResY=480 -windowed
-
+ ```
 
 ### For CARLA:
 
 for server:
-
+ ```bash
     cd path/to/carla/root
-
     ./CarlaUE4.sh
-
+ ```
 for client:
-
-source ~/.bashrc
-pyenv activate carla-0.9.15
-
+ ```bash
+   source ~/.bashrc
+   pyenv activate carla-0.9.15
+ ```
 Then run a script:
-
-python3 carla_explore_map.py
+ ```bash
+   python3 carla_explore_map.py
+ ```
