@@ -1,5 +1,6 @@
 import airsim
 import time
+import csv
 
 class AirSimExplore:
     def __init__(self):
@@ -7,40 +8,47 @@ class AirSimExplore:
         self.client = airsim.CarClient()
         self.client.confirmConnection()
         self.client.enableApiControl(True)
+        self.controls = airsim.CarControls()
+
+        # Prepare CSV file
+        self.csv_file = open("vehicle_positions.csv", mode='w', newline='')
+        self.csv_writer = csv.writer(self.csv_file)
+        self.csv_writer.writerow(["timestamp", "x", "y", "z"])
 
     def start(self):
-        # Start driving forward in a straight line with 50% throttle and no steering
-        controls = airsim.CarControls()
-        controls.throttle = 0.5
-        controls.steering = 0.0
-        self.client.setCarControls(controls)
+        # Drive forward with 50% throttle and no steering
+        self.controls.throttle = 0.5
+        self.controls.steering = 0.0
+        self.client.setCarControls(self.controls)
 
     def show_vehicle_position(self):
-        # Get the current state of the car
+        # Get the current position of the car
         car_state = self.client.getCarState()
         position = car_state.kinematics_estimated.position
+        timestamp = time.time()
 
-        # Print the current position of the car
-        print(f"Vehicle position: x={position.x_val:.2f}, y={position.y_val:.2f}, z={position.z_val:.2f}")
+        # Print the position
+        print(f"Time: {timestamp:.2f}, Position: x={position.x_val:.2f}, y={position.y_val:.2f}, z={position.z_val:.2f}")
+
+        # Write to CSV
+        self.csv_writer.writerow([timestamp, position.x_val, position.y_val, position.z_val])
 
     def stop(self):
-        # Stop the car by setting throttle and steering to zero
-        controls = airsim.CarControls()
-        controls.throttle = 0.0
-        controls.steering = 0.0
-        self.client.setCarControls(controls)
+        # Stop the car
+        self.controls.throttle = 0.0
+        self.controls.steering = 0.0
+        self.client.setCarControls(self.controls)
+
+        # Close CSV file
+        self.csv_file.close()
 
 if __name__ == "__main__":
-    # Create an instance of the AirSimExplore class
     demo = AirSimExplore()
-    
-    # Start the car
     demo.start()
 
-    # Drive and print the car's position every second for 10 seconds
+    # Drive and log positions for 10 seconds
     for _ in range(10):
         demo.show_vehicle_position()
         time.sleep(1)
 
-    # Stop the car
     demo.stop()
