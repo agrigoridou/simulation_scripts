@@ -6,22 +6,29 @@ class AirSimExplore:
         # Connect to the AirSim simulator
         self.client = airsim.CarClient()
         self.client.confirmConnection()
+        self.client.enableApiControl(True)
 
     def start(self):
         # Start driving forward in a straight line with 50% throttle and no steering
-        self.client.setCarControls(airsim.CarControls(throttle=0.5, steer=0.0))
+        controls = airsim.CarControls()
+        controls.throttle = 0.5
+        controls.steering = 0.0
+        self.client.setCarControls(controls)
 
     def show_vehicle_position(self):
         # Get the current state of the car
         car_state = self.client.getCarState()
-        position = car_state.position
-        
+        position = car_state.kinematics_estimated.position
+
         # Print the current position of the car
-        print(f"Vehicle position: {position.x_val}, {position.y_val}, {position.z_val}")
+        print(f"Vehicle position: x={position.x_val:.2f}, y={position.y_val:.2f}, z={position.z_val:.2f}")
 
     def stop(self):
         # Stop the car by setting throttle and steering to zero
-        self.client.setCarControls(airsim.CarControls(throttle=0.0, steer=0.0))
+        controls = airsim.CarControls()
+        controls.throttle = 0.0
+        controls.steering = 0.0
+        self.client.setCarControls(controls)
 
 if __name__ == "__main__":
     # Create an instance of the AirSimExplore class
