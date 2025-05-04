@@ -85,3 +85,38 @@ if __name__ == "__main__":
 
     nav = AirSimNavigateToTarget(target_x, target_y)
     nav.drive_to_target()
+
+
+////////////////////////////////////////////////////
+
+python3 airsim_explore_map.py
+Connected!
+Client Ver:1 (Min Req: 1), Server Ver:1 (Min Req: 1)
+
+[1746363045.6] Position x=-0.0, y=0.0 | Error angle: -0.00
+[1746363046.1] Position x=-0.0, y=0.0 | Error angle: -0.42
+[1746363046.6] Position x=0.1, y=-0.0 | Error angle: 0.16
+[1746363047.1] Position x=0.9, y=-0.0 | Error angle: -0.05
+[1746363047.6] Position x=2.0, y=-0.0 | Error angle: 0.03
+[1746363048.1] Position x=3.3, y=-0.0 | Error angle: -0.00
+[1746363048.6] Position x=4.9, y=-0.0 | Error angle: 0.01
+[1746363049.1] Position x=6.6, y=-0.0 | Error angle: 0.00
+[1746363049.6] Position x=8.6, y=-0.0 | Error angle: 0.00
+[1746363050.1] Position x=10.6, y=-0.0 | Error angle: 0.00
+[1746363050.6] Position x=12.8, y=-0.0 | Error angle: 0.00
+[1746363051.1] Position x=15.0, y=-0.0 | Error angle: 0.00
+[1746363051.6] Position x=17.3, y=-0.0 | Error angle: 0.00
+[1746363052.1] Position x=19.7, y=-0.0 | Error angle: 0.00
+[1746363052.6] Position x=22.1, y=-0.0 | Error angle: 0.00
+[1746363053.1] Position x=24.5, y=-0.0 | Error angle: 0.00
+[1746363053.6] Position x=27.0, y=-0.0 | Error angle: 0.00
+[1746363054.1] Position x=29.5, y=-0.0 | Error angle: 0.00
+[1746363054.6] Position x=32.1, y=-0.0 | Error angle: 0.00
+[1746363055.1] Position x=34.7, y=-0.0 | Error angle: 0.00
+[1746363055.6] Position x=37.2, y=-0.0 | Error angle: -0.00
+[1746363056.1] Position x=39.8, y=-0.0 | Error angle: -0.00
+[1746363056.6] Position x=42.4, y=-0.0 | Error angle: -0.00
+[1746363057.1] Position x=45.0, y=-0.0 | Error angle: -0.00
+[1746363057.6] Position x=47.6, y=-0.0 | Error angle: -0.00
+[1746363058.1] Position x=50.2, y=0.0 | Error angle: -3.14
+Reached target!
