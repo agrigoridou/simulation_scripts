@@ -8,7 +8,7 @@ class RoadNavigator:
     def __init__(self, client, waypoints):
         self.client = client
         self.waypoints = waypoints
-        self.ROAD_LABEL = 246  # Χρώμα/ετικέτα του δρόμου στο segmentation
+        self.ROAD_LABEL = 246  # <-- Βάλε εδώ το σωστό label του δρόμου
 
         self.client.enableApiControl(True)
         self.client.armDisarm(True)
@@ -17,27 +17,26 @@ class RoadNavigator:
         car_controls.brake = 0
         self.client.setCarControls(car_controls)
 
-        # Για ζωντανό γράφημα
-        self.path_x = []
-        self.path_y = []
+    def show_segmentation_image(self):
+        # Λήψη εικόνας segmentation από τον εξομοιωτή
+        responses = self.client.simGetImages([
+            airsim.ImageRequest("0", airsim.ImageType.Segmentation, False, False)
+        ])
+        
+        if responses is None or len(responses) == 0:
+            print("Σφάλμα: δεν ελήφθη εικόνα από το segmentation.")
+            return
 
-        plt.ion()
-        self.fig, self.ax = plt.subplots()
-        self.ax.set_title("Πλοήγηση Οχήματος")
-        self.ax.set_xlabel("X")
-        self.ax.set_ylabel("Y")
-        self.ax.plot([wp[0] for wp in waypoints], [wp[1] for wp in waypoints], 'ro--', label="Waypoints")
-        self.line_path, = self.ax.plot([], [], 'b.-', label="Διαδρομή")
-        self.ax.legend()
-        self.ax.grid()
+        img_response = responses[0]
+        img1d = np.frombuffer(img_response.image_data_uint8, dtype=np.uint8)
 
-    def update_plot(self, x, y):
-        self.path_x.append(x)
-        self.path_y.append(y)
-        self.line_path.set_data(self.path_x, self.path_y)
-        self.ax.relim()
-        self.ax.autoscale_view()
-        plt.pause(0.001)
+        height = img_response.height
+        width = img_response.width
+        img_rgb = img1d.reshape((height, width, 3))
+
+        # Εμφάνιση της εικόνας με OpenCV
+        cv2.imshow("Segmentation Image", img_rgb)
+        cv2.waitKey(1)  # Περιμένει 1 ms για την επόμενη εικόνα
 
     def get_segmentation_center_label(self):
         responses = self.client.simGetImages([
@@ -46,19 +45,12 @@ class RoadNavigator:
         if responses is None or len(responses) == 0:
             print("Σφάλμα: δεν ελήφθη εικόνα από το segmentation.")
             return -1
-
-        img_response = responses[0]
-        img1d = np.frombuffer(img_response.image_data_uint8, dtype=np.uint8)
-
-        height = img_response.height
-        width = img_response.width
-
-        if img1d.size != height * width:
-            print(f"Μη αναμενόμενο μέγεθος εικόνας: {img1d.size}, αναμένονταν {height * width}")
+        img1d = np.frombuffer(responses[0].image_data_uint8, dtype=np.uint8)
+        if img1d.size != 144 * 256:
+            print(f"Μη αναμενόμενο μέγεθος εικόνας: {img1d.size}, αναμένονταν 36864")
             return -1
-
-        img = img1d.reshape(height, width)
-        center_pixel = img[height // 2, width // 2]
+        img = img1d.reshape(144, 256)
+        center_pixel = img[72, 128]
         return center_pixel
 
     def drive_to_waypoint(self, x, y, z=-1):
@@ -81,6 +73,9 @@ class RoadNavigator:
 
         start_time = time.time()
         while time.time() - start_time < duration:
+            # Εμφάνιση segmentation image σε κάθε βήμα
+            self.show_segmentation_image()
+
             label = self.get_segmentation_center_label()
             print(f"Detected center label: {label}")
             if label != self.ROAD_LABEL:
@@ -90,11 +85,6 @@ class RoadNavigator:
                 controls.brake = 1.0
                 self.client.setCarControls(controls)
                 return False
-
-            state = self.client.getCarState()
-            pos = state.kinematics_estimated.position
-            self.update_plot(pos.x_val, pos.y_val)
-
             time.sleep(0.5)
 
         controls = airsim.CarControls()
@@ -112,23 +102,21 @@ class RoadNavigator:
                 print("Πλοήγηση διακόπηκε λόγω εξόδου από δρόμο.")
                 break
         print("Πλοήγηση ολοκληρώθηκε ή διεκόπη.")
-        plt.ioff()
-        plt.show()
 
 # === ΕΚΚΙΝΗΣΗ ΠΡΟΓΡΑΜΜΑΤΟΣ ===
 if __name__ == "__main__":
     client = airsim.CarClient()
     client.confirmConnection()
 
-    # Σημεία που βρήκες πάνω στο δρόμο
+    # TODO: Εδώ βάλε τα πραγματικά σημεία δρόμου που θες:
     waypoints = [
         (128.01309204101562, 34.42572021484375),
-        (58.344696044921875, -1.145053505897522),
-        (1.3018783330917358, 22.76832389831543),
-        (2.27899169921875, -26.20563507080078),
         (-128.96522521972656, 63.18020248413086),
+        (2.27899169921875, -26.20563507080078),
         (-128.76747131347656, -97.44789123535156),
-    ]
+        (58.344696044921875, -1.145053505897522),
+        (1.3018783330917358, 22.76832389831543)
+    ] 
 
     nav = RoadNavigator(client, waypoints)
     nav.run()
