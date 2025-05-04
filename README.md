@@ -42,12 +42,14 @@ pip install airsim numpy opencv-python
  
 ### For AirSim:
  ```bash
+pyenv activate airsimNH
 cd ~/UnrealEngine4.27/UnrealEngine 
 ./Engine/Binaries/Linux/UE4Editor ~/AirSim/Unreal/Environments/Blocks/Blocks.uproject
  ```
 
 ### For AirSimNH:
  ```bash
+pyenv activate airsimNH
 cd AirSimNH/LinuxNoEditor
 ./AirSimNH.sh -ResX=640 -ResY=480 -windowed
  ```
