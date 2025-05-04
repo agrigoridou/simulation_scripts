@@ -9,7 +9,7 @@ class AirSimDriveStraight:
 
     def start(self):
         # Drive the car straight with 50% throttle and no steering
-        self.client.setCarControls(airsim.CarControls(throttle=0.5, steer=0.0))
+        self.client.setCarControls(airsim.CarControls(throttle=0.5, steering=0.0))
 
     def show_vehicle_position(self):
         # Get the current position of the car and print it
@@ -19,7 +19,7 @@ class AirSimDriveStraight:
 
     def stop(self):
         # Stop the car by setting throttle and steer to zero
-        self.client.setCarControls(airsim.CarControls(throttle=0.0, steer=0.0))
+        self.client.setCarControls(airsim.CarControls(throttle=0.0, steering=0.0))
 
 if __name__ == "__main__":
     # Create an instance of the AirSimDriveStraight class
