@@ -6,20 +6,27 @@ class AirSimDriveStraight:
         # Connect to the AirSim simulator
         self.client = airsim.CarClient()
         self.client.confirmConnection()
+        self.client.enableApiControl(True)
 
     def start(self):
         # Drive the car straight with 50% throttle and no steering
-        self.client.setCarControls(airsim.CarControls(throttle=0.5, steering=0.0))
+        controls = airsim.CarControls()
+        controls.throttle = 0.5
+        controls.steering = 0.0
+        self.client.setCarControls(controls)
 
     def show_vehicle_position(self):
         # Get the current position of the car and print it
         car_state = self.client.getCarState()
-        position = car_state.position
-        print(f"Vehicle position: {position.x_val}, {position.y_val}, {position.z_val}")
+        position = car_state.kinematics_estimated.position
+        print(f"Vehicle position: x={position.x_val:.2f}, y={position.y_val:.2f}, z={position.z_val:.2f}")
 
     def stop(self):
-        # Stop the car by setting throttle and steer to zero
-        self.client.setCarControls(airsim.CarControls(throttle=0.0, steering=0.0))
+        # Stop the car by setting throttle and steering to zero
+        controls = airsim.CarControls()
+        controls.throttle = 0.0
+        controls.steering = 0.0
+        self.client.setCarControls(controls)
 
 if __name__ == "__main__":
     # Create an instance of the AirSimDriveStraight class
