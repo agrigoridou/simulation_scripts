@@ -1,6 +1,8 @@
 import carla
 import time
 import random
+import pygame
+import numpy as np
 
 class CarlaDriveStraight:
     def __init__(self):
@@ -20,6 +22,35 @@ class CarlaDriveStraight:
 
         # Spawn the vehicle in the simulation
         self.vehicle = self.world.spawn_actor(self.vehicle_bp, self.spawn_point)
+        
+        # Create a camera attached to the vehicle
+        self.camera = self.create_camera()
+
+    def create_camera(self):
+        # Define the camera's relative position to the vehicle
+        camera_transform = carla.Transform(carla.Location(x=2.5, z=1.0))  # 2.5 meters in front of the car and 1 meter above
+        camera_bp = self.world.get_blueprint_library().find('sensor.camera.rgb')
+        camera = self.world.spawn_actor(camera_bp, camera_transform, attach_to=self.vehicle)
+        
+        # Create a pygame window
+        pygame.init()
+        self.screen = pygame.display.set_mode((800, 600))
+        self.camera.listen(self.process_image)
+        
+        return camera
+
+    def process_image(self, image):
+        # Convert the image to an array and display it using pygame
+        array = np.frombuffer(image.raw_data, dtype=np.uint8)
+        array = np.reshape(array, (image.height, image.width, 4))
+        array = array[:, :, :3]  # Remove alpha channel
+        
+        # Convert the image into a format that pygame can display
+        surface = pygame.surfarray.make_surface(array)
+        
+        # Draw the image on the screen
+        self.screen.blit(surface, (0, 0))
+        pygame.display.flip()
 
     def start(self):
         # Drive forward in a straight line with 50% throttle and 0 steering
@@ -37,13 +68,15 @@ class CarlaDriveStraight:
     def close(self):
         # Destroy the vehicle actor and clean up the simulation
         self.vehicle.destroy()
+        self.camera.destroy()
+        pygame.quit()
 
 if __name__ == "__main__":
     # Create a CarlaDriveStraight instance and start the simulation
     demo = CarlaDriveStraight()
     demo.start()
 
-    # Drive for 10 seconds while printing position every second
+    # Drive for 10 seconds while printing position every second and displaying the camera feed
     for _ in range(10):
         demo.show_vehicle_position()
         time.sleep(1)
