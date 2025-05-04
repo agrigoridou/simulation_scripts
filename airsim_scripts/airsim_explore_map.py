@@ -127,3 +127,177 @@ class AirSimWaypointNavigatorWithDepthAvoidance:
 if __name__ == "__main__":
     nav = AirSimWaypointNavigatorWithDepthAvoidance("waypoints.csv")
     nav.navigate_all()
+
+
+////////////////////////////////////////////////////
+
+
+python3 airsim_explore_map.py
+Connected!
+Client Ver:1 (Min Req: 1), Server Ver:1 (Min Req: 1)
+
+
+→ Waypoint 1/4: (50.0,0.0)
+Obstacle at ~1.7m ahead
+Avoided obstacle, resuming
+[1746365225.6] to (50.0,0.0) pos=(-0.0,-0.0) err=0.00
+Obstacle at ~1.8m ahead
+Avoided obstacle, resuming
+[1746365228.1] to (50.0,0.0) pos=(1.8,0.8) err=-0.62
+Obstacle at ~1.6m ahead
+Avoided obstacle, resuming
+[1746365230.5] to (50.0,0.0) pos=(6.8,2.8) err=-0.86
+Obstacle at ~0.4m ahead
+Avoided obstacle, resuming
+[1746365233.0] to (50.0,0.0) pos=(11.3,4.9) err=-0.42
+Obstacle at ~0.4m ahead
+Avoided obstacle, resuming
+[1746365235.4] to (50.0,0.0) pos=(11.3,4.9) err=-0.13
+Obstacle at ~0.4m ahead
+Avoided obstacle, resuming
+[1746365237.7] to (50.0,0.0) pos=(11.3,4.9) err=0.56
+Obstacle at ~0.4m ahead
+Avoided obstacle, resuming
+[1746365240.1] to (50.0,0.0) pos=(11.3,4.9) err=-2.67
+Obstacle at ~0.4m ahead
+Avoided obstacle, resuming
+[1746365242.5] to (50.0,0.0) pos=(11.3,4.9) err=0.43
+Obstacle at ~0.4m ahead
+Avoided obstacle, resuming
+[1746365244.9] to (50.0,0.0) pos=(11.3,4.9) err=-2.70
+Obstacle at ~0.4m ahead
+Avoided obstacle, resuming
+[1746365247.3] to (50.0,0.0) pos=(11.3,4.9) err=-2.63
+Obstacle at ~0.4m ahead
+Avoided obstacle, resuming
+[1746365249.7] to (50.0,0.0) pos=(11.3,4.9) err=-2.60
+Obstacle at ~0.4m ahead
+Avoided obstacle, resuming
+[1746365252.1] to (50.0,0.0) pos=(11.3,4.9) err=-2.76
+Obstacle at ~0.4m ahead
+Avoided obstacle, resuming
+[1746365254.5] to (50.0,0.0) pos=(11.3,4.9) err=-2.74
+
+→ Waypoint 2/4: (50.0,50.0)
+Obstacle at ~0.4m ahead
+Avoided obstacle, resuming
+[1746365256.8] to (50.0,50.0) pos=(11.3,4.9) err=0.86
+Obstacle at ~0.4m ahead
+Avoided obstacle, resuming
+[1746365259.2] to (50.0,50.0) pos=(11.3,4.9) err=1.44
+Obstacle at ~0.4m ahead
+Avoided obstacle, resuming
+[1746365261.6] to (50.0,50.0) pos=(11.3,4.9) err=-1.75
+Obstacle at ~0.4m ahead
+Avoided obstacle, resuming
+[1746365264.0] to (50.0,50.0) pos=(11.3,4.9) err=-1.84
+Obstacle at ~0.4m ahead
+Avoided obstacle, resuming
+[1746365266.4] to (50.0,50.0) pos=(11.3,4.9) err=-1.60
+Obstacle at ~0.4m ahead
+Avoided obstacle, resuming
+[1746365268.8] to (50.0,50.0) pos=(11.3,4.9) err=1.29
+Obstacle at ~0.4m ahead
+Avoided obstacle, resuming
+[1746365271.2] to (50.0,50.0) pos=(11.3,4.9) err=1.62
+Obstacle at ~0.4m ahead
+Avoided obstacle, resuming
+[1746365273.6] to (50.0,50.0) pos=(11.3,4.9) err=1.37
+Obstacle at ~0.4m ahead
+Avoided obstacle, resuming
+[1746365276.0] to (50.0,50.0) pos=(11.3,4.9) err=1.46
+Obstacle at ~0.4m ahead
+Avoided obstacle, resuming
+[1746365278.4] to (50.0,50.0) pos=(11.3,4.9) err=-1.76
+Obstacle at ~0.4m ahead
+Avoided obstacle, resuming
+[1746365280.8] to (50.0,50.0) pos=(11.3,4.9) err=1.50
+Obstacle at ~0.4m ahead
+Avoided obstacle, resuming
+[1746365283.1] to (50.0,50.0) pos=(11.3,4.9) err=-1.75
+Obstacle at ~0.4m ahead
+Avoided obstacle, resuming
+[1746365285.5] to (50.0,50.0) pos=(11.3,4.9) err=1.13
+
+→ Waypoint 3/4: (0.0,50.0)
+Obstacle at ~0.4m ahead
+Avoided obstacle, resuming
+[1746365287.9] to (0.0,50.0) pos=(11.3,4.9) err=2.47
+Obstacle at ~0.4m ahead
+Avoided obstacle, resuming
+[1746365290.3] to (0.0,50.0) pos=(11.3,4.9) err=-0.74
+Obstacle at ~0.4m ahead
+Avoided obstacle, resuming
+[1746365292.7] to (0.0,50.0) pos=(11.3,4.9) err=-0.88
+Obstacle at ~0.4m ahead
+Avoided obstacle, resuming
+[1746365295.1] to (0.0,50.0) pos=(11.3,4.9) err=2.11
+Obstacle at ~0.4m ahead
+Avoided obstacle, resuming
+[1746365297.5] to (0.0,50.0) pos=(11.3,4.9) err=-0.90
+Obstacle at ~0.4m ahead
+Avoided obstacle, resuming
+[1746365299.9] to (0.0,50.0) pos=(11.3,4.9) err=2.45
+Obstacle at ~0.4m ahead
+Avoided obstacle, resuming
+[1746365302.3] to (0.0,50.0) pos=(11.3,4.9) err=2.26
+Obstacle at ~0.4m ahead
+Avoided obstacle, resuming
+[1746365304.7] to (0.0,50.0) pos=(11.3,4.9) err=-0.77
+Obstacle at ~0.4m ahead
+Avoided obstacle, resuming
+[1746365307.1] to (0.0,50.0) pos=(11.3,4.9) err=-0.84
+Obstacle at ~0.4m ahead
+Avoided obstacle, resuming
+[1746365309.5] to (0.0,50.0) pos=(11.3,4.9) err=1.86
+Obstacle at ~0.4m ahead
+Avoided obstacle, resuming
+[1746365311.8] to (0.0,50.0) pos=(11.3,4.9) err=2.28
+Obstacle at ~0.4m ahead
+Avoided obstacle, resuming
+[1746365314.2] to (0.0,50.0) pos=(11.3,4.9) err=2.12
+Obstacle at ~0.4m ahead
+Avoided obstacle, resuming
+[1746365316.6] to (0.0,50.0) pos=(11.3,5.0) err=2.24
+
+→ Waypoint 4/4: (0.0,0.0)
+Obstacle at ~0.4m ahead
+Avoided obstacle, resuming
+[1746365319.0] to (0.0,0.0) pos=(11.3,5.0) err=-2.17
+Obstacle at ~0.4m ahead
+Avoided obstacle, resuming
+[1746365321.4] to (0.0,0.0) pos=(11.3,5.0) err=0.96
+Obstacle at ~0.4m ahead
+Avoided obstacle, resuming
+[1746365323.8] to (0.0,0.0) pos=(11.3,5.0) err=1.08
+Obstacle at ~0.4m ahead
+Avoided obstacle, resuming
+[1746365326.2] to (0.0,0.0) pos=(11.3,5.0) err=-2.16
+Obstacle at ~0.4m ahead
+Avoided obstacle, resuming
+[1746365328.6] to (0.0,0.0) pos=(11.3,5.0) err=-2.06
+Obstacle at ~0.4m ahead
+Avoided obstacle, resuming
+[1746365331.0] to (0.0,0.0) pos=(11.3,5.0) err=-2.11
+Obstacle at ~0.4m ahead
+Avoided obstacle, resuming
+[1746365333.4] to (0.0,0.0) pos=(11.3,5.0) err=-2.13
+Obstacle at ~0.4m ahead
+Avoided obstacle, resuming
+[1746365335.8] to (0.0,0.0) pos=(11.3,4.9) err=-2.22
+Obstacle at ~0.4m ahead
+Avoided obstacle, resuming
+[1746365338.2] to (0.0,0.0) pos=(11.3,4.9) err=-2.30
+Obstacle at ~0.4m ahead
+Avoided obstacle, resuming
+[1746365340.6] to (0.0,0.0) pos=(11.3,4.9) err=0.94
+Obstacle at ~0.4m ahead
+Avoided obstacle, resuming
+[1746365343.0] to (0.0,0.0) pos=(11.3,4.9) err=-2.32
+Obstacle at ~0.4m ahead
+Avoided obstacle, resuming
+[1746365345.4] to (0.0,0.0) pos=(11.3,4.9) err=0.90
+Obstacle at ~0.4m ahead
+Avoided obstacle, resuming
+[1746365347.8] to (0.0,0.0) pos=(11.3,4.9) err=-2.20
+(airsimNH) sysadm@icsd20048vm:~/Desktop/simulation_scripts-main/airsim_scripts$  
