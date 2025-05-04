@@ -1,11 +1,13 @@
-# Navigation toward multiple targets: Waypoint-based navigation using AirSim
+# Navigation toward multiple targets with live visualization using Matplotlib and obstacle detection
 
 import airsim
 import time
 import csv
 import math
+import matplotlib.pyplot as plt
+import numpy as np
 
-class AirSimWaypointNavigator:
+class AirSimWaypointNavigatorWithObstacleDetection:
     def __init__(self, waypoint_file):
         self.client = airsim.CarClient()
         self.client.confirmConnection()
@@ -17,6 +19,22 @@ class AirSimWaypointNavigator:
         self.csv_file = open("navigate_positions.csv", mode='w', newline='')
         self.csv_writer = csv.writer(self.csv_file)
         self.csv_writer.writerow(["timestamp", "x", "y", "z"])
+
+        # Initialize matplotlib for live plot
+        self.fig, self.ax = plt.subplots()
+        self.ax.set_title("AirSim Navigation - Live Visualization with Obstacle Detection")
+        self.ax.set_xlabel("X Position")
+        self.ax.set_ylabel("Y Position")
+        self.ax.set_xlim(-10, 60)  # Adjust axis limits as needed
+        self.ax.set_ylim(-10, 60)  # Adjust axis limits as needed
+        self.ax.grid(True)
+
+        # Plot waypoints as blue dots
+        wp_x, wp_y = zip(*self.waypoints)
+        self.ax.plot(wp_x, wp_y, 'bo', label="Waypoints")
+
+        # Line for path traversal
+        self.path_line, = self.ax.plot([], [], 'g-', label="Path")
 
     def load_waypoints(self, filename):
         waypoints = []
@@ -38,9 +56,21 @@ class AirSimWaypointNavigator:
     def current_heading(self, velocity):
         return math.atan2(velocity.y_val, velocity.x_val)
 
+    def detect_obstacle(self, max_distance=5.0):
+        # Use AirSim's front-facing sonar or LiDAR to detect obstacles
+        front_sonar = self.client.getDistanceSensorData(sensor_name="Front_Sonar")
+        distance = front_sonar.distance
+        if distance < max_distance:
+            print(f"Obstacle detected within {max_distance} meters!")
+            return True
+        return False
+
     def drive_to_waypoint(self, target_x, target_y, tolerance=1.5, timeout=30):
         start_time = time.time()
         self.controls.throttle = 0.5
+
+        path_x = []
+        path_y = []
 
         while time.time() - start_time < timeout:
             pos, vel = self.get_position()
@@ -53,6 +83,30 @@ class AirSimWaypointNavigator:
             self.controls.steering = max(-1.0, min(1.0, angle_error))
             self.client.setCarControls(self.controls)
 
+            # Check for obstacles
+            if self.detect_obstacle():
+                # Reverse if obstacle detected
+                self.controls.throttle = -0.5
+                self.client.setCarControls(self.controls)
+                time.sleep(1)  # Move backward for 1 second
+                print("Reversing due to obstacle...")
+                
+                # Change direction by slightly altering the steering
+                self.controls.steering = 0.5  # Change direction
+                self.client.setCarControls(self.controls)
+                time.sleep(2)  # Turn for a while before resuming forward motion
+                print("Changing direction...")
+
+            # Add current position to the path for visualization
+            path_x.append(pos.x_val)
+            path_y.append(pos.y_val)
+
+            # Update the plot with the new position
+            self.path_line.set_data(path_x, path_y)
+            self.ax.plot(pos.x_val, pos.y_val, 'ro')  # Plot current position in red
+            plt.pause(0.01)
+
+            # Print information
             print(f"[{timestamp:.1f}] Moving to ({target_x}, {target_y}) | pos=({pos.x_val:.1f},{pos.y_val:.1f}) | angle error={angle_error:.2f}")
             self.csv_writer.writerow([timestamp, pos.x_val, pos.y_val, pos.z_val])
 
@@ -73,11 +127,15 @@ class AirSimWaypointNavigator:
         print("Navigation complete.")
         self.csv_file.close()
 
+        # Show the final plot
+        plt.legend()
+        plt.show()
+
     def stop(self):
         self.controls.throttle = 0.0
         self.controls.steering = 0.0
         self.client.setCarControls(self.controls)
 
 if __name__ == "__main__":
-    navigator = AirSimWaypointNavigator("waypoints.csv")
+    navigator = AirSimWaypointNavigatorWithObstacleDetection("waypoints.csv")
     navigator.navigate_all()
