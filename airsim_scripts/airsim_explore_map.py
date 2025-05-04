@@ -30,6 +30,7 @@ class RoadNavigator:
         img_response = responses[0]
         img1d = np.frombuffer(img_response.image_data_uint8, dtype=np.uint8)
 
+        # Λήψη διαστάσεων εικόνας από την απάντηση
         height = img_response.height
         width = img_response.width
         img_rgb = img1d.reshape((height, width, 3))
@@ -46,11 +47,14 @@ class RoadNavigator:
             print("Σφάλμα: δεν ελήφθη εικόνα από το segmentation.")
             return -1
         img1d = np.frombuffer(responses[0].image_data_uint8, dtype=np.uint8)
-        if img1d.size != 144 * 256:
-            print(f"Μη αναμενόμενο μέγεθος εικόνας: {img1d.size}, αναμένονταν 36864")
-            return -1
-        img = img1d.reshape(144, 256)
-        center_pixel = img[72, 128]
+        
+        # Λήψη διαστάσεων εικόνας από την απάντηση
+        img_response = responses[0]
+        height = img_response.height
+        width = img_response.width
+        img = img1d.reshape((height, width))
+
+        center_pixel = img[height // 2, width // 2]  # Ελέγχουμε το κέντρο της εικόνας
         return center_pixel
 
     def drive_to_waypoint(self, x, y, z=-1):
