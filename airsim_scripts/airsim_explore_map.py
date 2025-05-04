@@ -76,9 +76,14 @@ class RoadNavigator:
         img_response = responses[0]
         height = img_response.height
         width = img_response.width
-        img = img1d.reshape((height, width))
 
-        center_pixel = img[height // 2, width // 2]  # Ελέγχουμε το κέντρο της εικόνας
+        # Αναμορφώνουμε την εικόνα με τις σωστές διαστάσεις
+        img = img1d.reshape((height, width, 3))  # Προσαρμόζουμε τις διαστάσεις της εικόνας
+
+        # Ελέγχουμε το κέντρο της εικόνας
+        center_pixel = img[height // 2, width // 2]
+        
+        # Επιστρέφουμε την ετικέτα του κέντρου
         return center_pixel
 
     def drive_to_waypoint(self, x, y, z=-1):
