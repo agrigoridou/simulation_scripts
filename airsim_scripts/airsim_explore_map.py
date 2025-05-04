@@ -1,15 +1,10 @@
-import airsim
-import time
-import numpy as np
-import cv2
-import matplotlib.pyplot as plt
-
 class RoadNavigator:
     def __init__(self, client, waypoints):
         self.client = client
         self.waypoints = waypoints
         self.ROAD_LABEL = np.array([246, 159, 142])  # Ο RGB χρωματικός κωδικός του δρόμου
-        
+        self.COLOR_THRESHOLD = 200  # Χαλαρότερο όριο για την απόσταση χρώματος
+
         self.client.enableApiControl(True)
         self.client.armDisarm(True)
 
@@ -39,29 +34,6 @@ class RoadNavigator:
         # Εμφάνιση του ενημερωμένου plot
         plt.draw()
         plt.pause(0.1)
-
-    def show_segmentation_image(self):
-        # Λήψη εικόνας segmentation από τον εξομοιωτή
-        responses = self.client.simGetImages([
-            airsim.ImageRequest("0", airsim.ImageType.Segmentation, False, False)
-        ])
-        
-        if responses is None or len(responses) == 0:
-            print("Σφάλμα: δεν ελήφθη εικόνα από το segmentation.")
-            return
-
-        img_response = responses[0]
-        img1d = np.frombuffer(img_response.image_data_uint8, dtype=np.uint8)
-
-        # Λήψη διαστάσεων εικόνας από την απάντηση
-        height = img_response.height
-        width = img_response.width
-        img_rgb = img1d.reshape((height, width, 3))
-
-        # Εμφάνιση της εικόνας με matplotlib
-        plt.imshow(img_rgb)
-        plt.axis('off')  # Κρύβει τους άξονες
-        plt.show()
 
     def get_segmentation_center_label(self):
         responses = self.client.simGetImages([
@@ -116,7 +88,7 @@ class RoadNavigator:
             # Λήψη της εικόνας για τον έλεγχο του δρόμου
             color_diff = self.get_segmentation_center_label()
             print(f"Color difference: {color_diff}")
-            if color_diff > 50:  # Αν η απόσταση χρώματος είναι μεγαλύτερη από κάποιο όριο
+            if color_diff > self.COLOR_THRESHOLD:  # Αν η απόσταση χρώματος είναι μεγαλύτερη από το χαλαρωμένο όριο
                 print("Βγήκαμε εκτός δρόμου!")
                 controls = airsim.CarControls()
                 controls.throttle = 0.0
@@ -140,21 +112,3 @@ class RoadNavigator:
                 print("Πλοήγηση διακόπηκε λόγω εξόδου από δρόμο.")
                 break
         print("Πλοήγηση ολοκληρώθηκε ή διεκόπη.")
-
-# === ΕΚΚΙΝΗΣΗ ΠΡΟΓΡΑΜΜΑΤΟΣ ===
-if __name__ == "__main__":
-    client = airsim.CarClient()
-    client.confirmConnection()
-
-    # TODO: Εδώ βάλε τα πραγματικά σημεία δρόμου που θες:
-    waypoints = [
-        (128.01309204101562, 34.42572021484375),
-        (-128.96522521972656, 63.18020248413086),
-        (2.27899169921875, -26.20563507080078),
-        (-128.76747131347656, -97.44789123535156),
-        (58.344696044921875, -1.145053505897522),
-        (1.3018783330917358, 22.76832389831543)
-    ] 
-
-    nav = RoadNavigator(client, waypoints)
-    nav.run()
