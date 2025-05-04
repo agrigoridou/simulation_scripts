@@ -1,75 +1,64 @@
 import airsim
 import numpy as np
 import time
-import math
 
-class AirSimNavigator:
+class RoadFollower:
     def __init__(self):
         self.client = airsim.CarClient()
         self.client.confirmConnection()
         self.client.enableApiControl(True)
-        self.car_controls = airsim.CarControls()
-        self.client.setCarControls(self.car_controls)
-        print("Connected!")
+        self.controls = airsim.CarControls()
+        print("Connected to AirSim.")
 
-    def is_on_road(self, window=20):
+    def get_segmentation_image(self):
         responses = self.client.simGetImages([
             airsim.ImageRequest("0", airsim.ImageType.Segmentation, False, False)
         ])
-        resp = responses[0]
+        img1d = np.frombuffer(responses[0].image_data_uint8, dtype=np.uint8)
+        img_rgb = img1d.reshape(responses[0].height, responses[0].width, 3)
+        return img_rgb[:, :, 0]  # παίρνουμε μόνο το label channel
 
-        if resp.width == 0 or resp.height == 0:
-            print("Empty image received.")
-            return False
+    def follow_road(self, duration=60):
+        start = time.time()
+        while time.time() - start < duration:
+            try:
+                seg_img = self.get_segmentation_image()
+                h, w = seg_img.shape
+                scan_y = int(h * 0.75)  # πιο κάτω στη φωτογραφία
+                line = seg_img[scan_y]
 
-        try:
-            img_rgb = np.frombuffer(resp.image_data_uint8, dtype=np.uint8).reshape(resp.height, resp.width, 3)
-        except ValueError:
-            print("Σφάλμα στην επεξεργασία εικόνας.")
-            return False
+                road_indices = np.where(line == 0)[0]  # label 0 = δρόμος
 
-        img_labels = img_rgb[:, :, 0]
-        h, w = img_labels.shape
-        cx, cy = w // 2, h // 2
-        half = window // 2
-        center_patch = img_labels[cy - half:cy + half, cx - half:cx + half]
+                if len(road_indices) == 0:
+                    print("No road detected, slowing down.")
+                    self.controls.throttle = 0.2
+                    self.controls.steering = 0
+                else:
+                    road_center = int(np.mean(road_indices))
+                    image_center = w // 2
+                    error = (road_center - image_center) / (w // 2)  # κανονικοποίηση [-1, 1]
 
-        road_pixels = np.count_nonzero(center_patch == 0)
-        total_pixels = center_patch.size
+                    # Προσαρμογή τιμονιού
+                    self.controls.steering = np.clip(error * 1.0, -1, 1)
+                    self.controls.throttle = 0.5
 
-        ratio = road_pixels / total_pixels
-        return ratio > 0.8
+                    print(f"Steering: {self.controls.steering:.2f}, Error: {error:.2f}")
 
-    def drive_forward_smart(self, duration=10):
-        self.car_controls.throttle = 0.4
-        self.car_controls.steering = 0.0
-        self.client.setCarControls(self.car_controls)
+                self.client.setCarControls(self.controls)
+                time.sleep(0.1)
+            except Exception as e:
+                print("Σφάλμα:", e)
+                self.controls.throttle = 0
+                self.client.setCarControls(self.controls)
 
-        start_time = time.time()
-
-        while time.time() - start_time < duration:
-            if self.is_on_road():
-                self.car_controls.throttle = 0.5
-                self.car_controls.steering = 0.0
-                print("On road")
-            else:
-                print("Off road! Adjusting...")
-                self.car_controls.steering += 0.15
-                if self.car_controls.steering > 1:
-                    self.car_controls.steering = -1
-                self.car_controls.throttle = 0.2
-
-            self.client.setCarControls(self.car_controls)
-            time.sleep(0.1)
-
-        self.car_controls.throttle = 0
-        self.car_controls.steering = 0
-        self.client.setCarControls(self.car_controls)
+        self.controls.throttle = 0
+        self.client.setCarControls(self.controls)
+        print("Τέλος διαδρομής.")
 
     def run(self):
-        print("Ξεκινάμε να οδηγούμε στον δρόμο...")
-        self.drive_forward_smart(duration=60)
+        print("Ξεκινώ να ακολουθώ τον δρόμο...")
+        self.follow_road()
 
 if __name__ == '__main__':
-    nav = AirSimNavigator()
-    nav.run()
+    bot = RoadFollower()
+    bot.run()
