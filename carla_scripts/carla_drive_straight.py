@@ -22,9 +22,13 @@ class CarlaDriveStraight:
 
         # Spawn the vehicle in the simulation
         self.vehicle = self.world.spawn_actor(self.vehicle_bp, self.spawn_point)
-        
+
         # Create a camera attached to the vehicle
-        self.camera = self.create_camera()
+        self.camera = None
+        try:
+            self.camera = self.create_camera()
+        except Exception as e:
+            print(f"Error creating camera: {e}")
 
     def create_camera(self):
         # Define the camera's relative position to the vehicle
@@ -35,7 +39,7 @@ class CarlaDriveStraight:
         # Create a pygame window
         pygame.init()
         self.screen = pygame.display.set_mode((800, 600))
-        self.camera.listen(self.process_image)
+        camera.listen(self.process_image)
         
         return camera
 
@@ -68,19 +72,23 @@ class CarlaDriveStraight:
     def close(self):
         # Destroy the vehicle actor and clean up the simulation
         self.vehicle.destroy()
-        self.camera.destroy()
+        if self.camera:
+            self.camera.destroy()
         pygame.quit()
 
 if __name__ == "__main__":
     # Create a CarlaDriveStraight instance and start the simulation
     demo = CarlaDriveStraight()
-    demo.start()
+    if demo.camera:
+        demo.start()
 
-    # Drive for 10 seconds while printing position every second and displaying the camera feed
-    for _ in range(10):
-        demo.show_vehicle_position()
-        time.sleep(1)
+        # Drive for 10 seconds while printing position every second and displaying the camera feed
+        for _ in range(10):
+            demo.show_vehicle_position()
+            time.sleep(1)
 
-    # Stop the vehicle and clean up
-    demo.stop()
-    demo.close()
+        # Stop the vehicle and clean up
+        demo.stop()
+        demo.close()
+    else:
+        print("Camera creation failed, exiting.")
