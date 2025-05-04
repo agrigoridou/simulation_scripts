@@ -1,8 +1,6 @@
 hello_car.py:
 
-
-![Uploading Screenshot 2025-05-04 150201.png…]()
-
+![Screenshot 2025-05-04 150201](https://github.com/user-attachments/assets/d4eb15af-d237-4511-b256-32de79e7a42d)
 
 
 airsim_drive_straight.py:
