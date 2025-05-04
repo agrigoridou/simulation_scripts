@@ -1,15 +1,13 @@
 import airsim
 import numpy as np
 import time
-import math
 
 class RoadNavigator:
     def __init__(self, client, waypoints):
         self.client = client
         self.client.confirmConnection()
         self.client.enableApiControl(True)
-        self.client.car.enableApiControl(True)
-        self.client.car.armDisarm(True)
+        self.client.armDisarm(True)
         self.waypoints = waypoints
 
     def get_segmentation_center_label(self):
@@ -35,7 +33,6 @@ class RoadNavigator:
     def drive_to_waypoint(self, x, y):
         current = self.client.getCarState().kinematics_estimated.position
         z = current.z_val
-        target = airsim.Vector3r(x, y, z)
         self.client.moveToPositionAsync(x, y, z, velocity=5).join()
 
     def run(self):
@@ -52,7 +49,7 @@ class RoadNavigator:
 
                 if label != 0:
                     print(f"Βγήκαμε εκτός δρόμου! Ετικέτα: {label}")
-                    self.client.car.brake()
+                    self.client.brake()
                     return
                 else:
                     print(f"Είμαστε στον δρόμο. Ετικέτα: {label}")
@@ -64,8 +61,6 @@ if __name__ == "__main__":
     client = airsim.CarClient()
     client.confirmConnection()
 
-    # === Δώσε χειροκίνητα τα waypoints πάνω στον δρόμο ===
-    # (x, y) συντεταγμένες σε AirSim World
     waypoints = [
         (0, 0),
         (30, 0),
