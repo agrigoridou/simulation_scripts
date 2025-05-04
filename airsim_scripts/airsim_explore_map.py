@@ -6,30 +6,43 @@ import math
 class RoadNavigator:
     def __init__(self, client, waypoints):
         self.client = client
-        self.client.confirmConnection()
         self.client.enableApiControl(True)
         self.client.armDisarm(True)
         self.waypoints = waypoints
+        self.client.simSetSegmentationObjectID("[Car]", 0, True)
+        self.client.simSetSegmentationObjectID("Road*", 0, True)  # Label 0 = δρόμος
 
-    def get_segmentation_center_label(self):
+    def get_heading(self):
+        orientation = self.client.getCarState().kinematics_estimated.orientation
+        yaw = airsim.to_eularian_angles(orientation)[2]
+        return yaw
+
+    def get_segmentation_center_label(self, window=10):
         responses = self.client.simGetImages([
             airsim.ImageRequest("0", airsim.ImageType.Segmentation, False, False)
         ])
-        if len(responses) < 1:
+        if not responses or len(responses) == 0:
+            print("Σφάλμα λήψης εικόνας.")
             return None
 
         resp = responses[0]
-        img1d = np.frombuffer(resp.image_data_uint8, dtype=np.uint8)
-
+        img = np.frombuffer(resp.image_data_uint8, dtype=np.uint8)
         try:
-            img_rgb = img1d.reshape(resp.height, resp.width, 3)
-        except ValueError:
-            print(f"Σφάλμα στη λήψη εικόνας: shape={resp.height}x{resp.width}, μέγεθος δεδομένων={len(img1d)}")
+            img = img.reshape((resp.height, resp.width, 3))
+        except:
+            print("Σφάλμα στο reshape εικόνας.")
             return None
 
-        center_pixel = img_rgb[resp.height // 2, resp.width // 2]
-        label = center_pixel[0]
-        return label
+        h, w = resp.height, resp.width
+        center_x = w // 2
+        center_y = h // 2
+        patch = img[center_y - window:center_y + window, center_x - window:center_x + window]
+        labels = patch[:, :, 0]
+        unique, counts = np.unique(labels, return_counts=True)
+        dominant_label = unique[np.argmax(counts)]
+
+        print(f"Detected center label: {dominant_label}")
+        return dominant_label
 
     def drive_to_waypoint(self, x, y, tolerance=2.0):
         while True:
@@ -52,20 +65,21 @@ class RoadNavigator:
             self.client.setCarControls(controls)
 
             label = self.get_segmentation_center_label()
-            if label != 0:
+            if label is None or label != 0:
                 print(f"Βγήκαμε εκτός δρόμου! Ετικέτα: {label}")
-                self.client.brake()
+                controls = airsim.CarControls()
+                controls.throttle = 0.0
+                controls.brake = 1.0
+                self.client.setCarControls(controls)
                 return False
 
             time.sleep(0.1)
 
-        self.client.brake()
+        controls = airsim.CarControls()
+        controls.throttle = 0.0
+        controls.brake = 1.0
+        self.client.setCarControls(controls)
         return True
-
-    def get_heading(self):
-        orientation = self.client.getCarState().kinematics_estimated.orientation
-        yaw = airsim.to_eularian_angles(orientation)[2]
-        return yaw
 
     def run(self):
         print("Ξεκινάμε πλοήγηση...")
@@ -73,14 +87,15 @@ class RoadNavigator:
             print(f"→ WP {i+1}/{len(self.waypoints)}: ({x},{y})")
             ok = self.drive_to_waypoint(x, y)
             if not ok:
-                print("Διακόπηκε λόγω εξόδου από δρόμο.")
+                print("Πλοήγηση διακόπηκε λόγω εξόδου από δρόμο.")
                 break
-        print("Τέλος πλοήγησης.")
+        print("Πλοήγηση ολοκληρώθηκε ή διεκόπη.")
 
 if __name__ == "__main__":
     client = airsim.CarClient()
     client.confirmConnection()
 
+    # Waypoints πάνω στον δρόμο (ενδεικτικά, προσαρμόστε αναλόγως τον χάρτη σας)
     waypoints = [
         (0, 0),
         (30, 0),
@@ -89,10 +104,8 @@ if __name__ == "__main__":
         (60, 60),
         (30, 60),
         (0, 60),
-        (-30, 60),
-        (-60, 60),
-        (-60, 30),
-        (-60, 0)
+        (0, 30),
+        (0, 0)
     ]
 
     nav = RoadNavigator(client, waypoints)
