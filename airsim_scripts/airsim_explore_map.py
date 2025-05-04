@@ -8,14 +8,37 @@ class RoadNavigator:
     def __init__(self, client, waypoints):
         self.client = client
         self.waypoints = waypoints
-        self.ROAD_LABEL = 246  # <-- Βάλε εδώ το σωστό label του δρόμου
-
+        self.ROAD_LABEL = 246  # Χρώμα δρόμου (βάλε το σωστό αν χρειάζεται)
+        
         self.client.enableApiControl(True)
         self.client.armDisarm(True)
 
         car_controls = airsim.CarControls()
         car_controls.brake = 0
         self.client.setCarControls(car_controls)
+
+        # Ορίζουμε το matplotlib για να εμφανίζουμε τα live plots
+        self.fig, self.ax = plt.subplots()
+        self.ax.set_xlim(-150, 150)  # Περιοχή x για την προβολή του live plot
+        self.ax.set_ylim(-150, 150)  # Περιοχή y για την προβολή του live plot
+        self.ax.set_xlabel('X position')
+        self.ax.set_ylabel('Y position')
+
+        self.plot_points, = self.ax.plot([], [], 'bo', label="Waypoints")
+        self.plot_vehicle, = self.ax.plot([], [], 'go', label="Vehicle Position")
+
+    def update_live_plot(self, vehicle_pos):
+        # Ενημέρωση του live plot
+        self.plot_vehicle.set_data(vehicle_pos[0], vehicle_pos[1])
+
+        # Ενημέρωση των waypoints
+        waypoints_x = [wp[0] for wp in self.waypoints]
+        waypoints_y = [wp[1] for wp in self.waypoints]
+        self.plot_points.set_data(waypoints_x, waypoints_y)
+
+        # Εμφάνιση του ενημερωμένου plot
+        plt.draw()
+        plt.pause(0.1)
 
     def show_segmentation_image(self):
         # Λήψη εικόνας segmentation από τον εξομοιωτή
@@ -78,9 +101,11 @@ class RoadNavigator:
 
         start_time = time.time()
         while time.time() - start_time < duration:
-            # Εμφάνιση segmentation image σε κάθε βήμα
-            self.show_segmentation_image()
+            # Ενημέρωση του live plot
+            vehicle_pos = (state.kinematics_estimated.position.x_val, state.kinematics_estimated.position.y_val)
+            self.update_live_plot(vehicle_pos)
 
+            # Λήψη της εικόνας για τον έλεγχο του δρόμου
             label = self.get_segmentation_center_label()
             print(f"Detected center label: {label}")
             if label != self.ROAD_LABEL:
