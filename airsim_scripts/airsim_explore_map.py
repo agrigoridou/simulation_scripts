@@ -3,100 +3,83 @@ import numpy as np
 import time
 import math
 
-class AutonomousNavigation:
+class AirSimNavigator:
     def __init__(self):
+        # Σύνδεση με τον εξομοιωτή
         self.client = airsim.CarClient()
         self.client.confirmConnection()
         self.client.enableApiControl(True)
         self.car_controls = airsim.CarControls()
-        self.car_state = self.client.getCarState()
+        self.client.simSetSegmentationObjectID("[\w]*", 0, True)  # Επαναφορά όλων των αντικειμένων σε ID 0
+        self.client.simSetSegmentationObjectID("Road.*", 1, True)  # Ορισμός "Road" σε label ID 1
         print("Connected!")
 
-        # Ορισμός δρόμου label
-        self.road_label_id = 6  # Αν δεν δουλεύει, θα δεις στην κονσόλα το πραγματικό
-
-        # Διαδρομή σε (x, y)
-        self.path = [
-            (50, 0),
-            (50, 50),
-            (0, 50),
-            (0, 0)
-        ]
-
-    def move_forward(self, duration=1, speed=5):
-        self.car_controls.throttle = 0.5
-        self.car_controls.steering = 0
-        self.client.setCarControls(self.car_controls)
-        time.sleep(duration)
-        self.car_controls.throttle = 0
-        self.client.setCarControls(self.car_controls)
-
-    def turn(self, direction, duration=1):
-        self.car_controls.throttle = 0.3
-        if direction == 'left':
-            self.car_controls.steering = -1
-        else:
-            self.car_controls.steering = 1
-        self.client.setCarControls(self.car_controls)
-        time.sleep(duration)
-        self.car_controls.steering = 0
-        self.client.setCarControls(self.car_controls)
-
     def get_segmentation_center_label(self, window=20):
-        # Ζήτα RGB εικόνα από segmentation camera
-        resp = self.client.simGetImages([
-            airsim.ImageRequest(0, airsim.ImageType.Segmentation, pixels_as_float=False, compress=False)
-        ])[0]
+        # Λήψη εικόνας από την κάμερα segmentation
+        responses = self.client.simGetImages([
+            airsim.ImageRequest("0", airsim.ImageType.Segmentation, False, False)
+        ])
+        resp = responses[0]
 
-        img_rgb = np.frombuffer(resp.image_data_uint8, dtype=np.uint8)
-        try:
-            img_rgb = img_rgb.reshape((resp.height, resp.width, 3))
-        except ValueError:
-            print(f"⚠️ Invalid image shape: {len(img_rgb)} bytes, expected {(resp.height, resp.width, 3)}")
+        if resp.width == 0 or resp.height == 0:
+            print("Empty image received.")
             return -1
 
-        # Υπολογισμός label από RGB
-        img_label = img_rgb[:, :, 0] + img_rgb[:, :, 1]*256 + img_rgb[:, :, 2]*256*256
+        img = np.frombuffer(resp.image_data_uint8, dtype=np.uint8).reshape(resp.height, resp.width)
+        
+        # Απόκτηση των pixel γύρω από το κέντρο της εικόνας
+        h, w = img.shape
+        cx, cy = w // 2, h // 2
+        half_window = window // 2
+        center_pixels = img[cy - half_window:cy + half_window, cx - half_window:cx + half_window].flatten()
 
-        # Κέντρο εικόνας
-        cy, cx = resp.height // 2, resp.width // 2
-        w2 = window // 2
-        center = img_label[cy - w2:cy + w2, cx - w2:cx + w2]
-
-        labels, counts = np.unique(center, return_counts=True)
-        dominant_label = labels[np.argmax(counts)]
-
-        print(f"Detected center label: {dominant_label}")
+        # Εύρεση του επικρατέστερου label
+        dominant_label = int(np.bincount(center_pixels).argmax())
+        print(f"Detected center label: {dominant_label}")  # 👈 Προστέθηκε
         return dominant_label
 
-    def drive_to(self, target_x, target_y):
-        while True:
-            car_state = self.client.getCarState()
-            pos = car_state.kinematics_estimated.position
-            x, y = pos.x_val, pos.y_val
-            distance = math.sqrt((target_x - x)**2 + (target_y - y)**2)
+    def drive_to(self, x, y, speed=5):
+        pos = self.client.getCarState().kinematics_estimated.position
+        start_x = pos.x_val
+        start_y = pos.y_val
 
-            if distance < 3:
-                print(f"Reached waypoint ({target_x}, {target_y})")
-                break
+        dx = x - start_x
+        dy = y - start_y
+        distance = math.hypot(dx, dy)
 
+        angle = math.atan2(dy, dx)
+        self.car_controls.throttle = 0.5
+        self.car_controls.steering = 0.0
+        self.client.setCarControls(self.car_controls)
+
+        duration = distance / speed
+        start_time = time.time()
+
+        while time.time() - start_time < duration:
             label = self.get_segmentation_center_label(window=20)
 
-            if label == self.road_label_id:
-                self.move_forward(duration=0.5)
+            if label != 1:
+                print("Off-road detected. Adjusting...")
+                self.car_controls.steering += 0.1  # απλή προσαρμογή
             else:
-                print("⚠️ Off-road detected. Adjusting...")
-                self.turn('left', duration=0.3)
-                self.move_forward(duration=0.3)
+                self.car_controls.steering *= 0.9  # Επαναφορά πορείας
+
+            self.client.setCarControls(self.car_controls)
+            time.sleep(0.1)
+
+        # Σταμάτημα του αυτοκινήτου
+        self.car_controls.throttle = 0
+        self.car_controls.steering = 0
+        self.client.setCarControls(self.car_controls)
+        print("Reached waypoint.")
 
     def run(self):
-        for i, (x, y) in enumerate(self.path):
-            print(f"\n→ WP {i+1}/{len(self.path)}: ({x},{y})")
+        # Ορισμός κάποιων σημείων που θα επισκεφτεί
+        waypoints = [(50, 0), (50, 50), (0, 50), (0, 0)]
+        for i, (x, y) in enumerate(waypoints):
+            print(f"\n→ WP {i+1}/{len(waypoints)}: ({x},{y})")
             self.drive_to(x, y)
 
-        self.client.enableApiControl(False)
-        print("Finished path!")
-
-if __name__ == '__main__':
-    nav = AutonomousNavigation()
+if __name__ == "__main__":
+    nav = AirSimNavigator()
     nav.run()
