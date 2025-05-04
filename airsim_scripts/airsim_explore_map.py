@@ -1,144 +1,128 @@
-# Navigation toward multiple targets with live visualization using Matplotlib and depth‑based obstacle detection
-# Method: Waypoint-based navigation with obstacle avoidance state machine
+# Navigation toward multiple targets with live visualization and robust obstacle avoidance
+# Method: Waypoint-based navigation + central‐window depth filtering + stuck detection
 
-import airsim
-import time
-import csv
-import math
-import random
-import matplotlib.pyplot as plt
+import airsim, time, csv, math, random
 import numpy as np
+import matplotlib.pyplot as plt
 
-class AirSimWaypointNavigatorWithAdvancedAvoidance:
+class AirSimWaypointNavigatorRobust:
     def __init__(self, waypoint_file):
-        # connect to AirSim CarClient
+        # σύνδεση
         self.client = airsim.CarClient()
         self.client.confirmConnection()
         self.client.enableApiControl(True)
         self.controls = airsim.CarControls()
 
-        # load waypoints
-        self.waypoints = self.load_waypoints(waypoint_file)
+        # waypoints
+        self.waypoints = []
+        with open(waypoint_file) as f:
+            for r in csv.DictReader(f):
+                self.waypoints.append((float(r['x']), float(r['y'])))
 
-        # prepare CSV log
-        self.csv_file = open("navigate_positions.csv", mode='w', newline='')
-        self.csv_writer = csv.writer(self.csv_file)
-        self.csv_writer.writerow(["timestamp", "x", "y", "z", "state"])
+        # log
+        self.log = open("navigate_positions.csv",'w',newline='')
+        self.w = csv.writer(self.log)
+        self.w.writerow(["t","x","y","z","state"])
 
-        # set up live plot
-        self.fig, self.ax = plt.subplots()
-        self.ax.set_title("AirSim Navigation – Advanced Obstacle Avoidance")
-        self.ax.set_xlabel("X Position");  self.ax.set_ylabel("Y Position")
-        self.ax.set_xlim(-10, 60);  self.ax.set_ylim(-10, 60)
-        self.ax.grid(True)
-        # plot waypoints
-        wp_x, wp_y = zip(*self.waypoints)
-        self.ax.plot(wp_x, wp_y, 'bo', label="Waypoints")
-        self.path_line, = self.ax.plot([], [], 'g-', label="Path")
+        # plot
+        self.fig,self.ax=plt.subplots()
+        self.ax.set_xlim(-10,60); self.ax.set_ylim(-10,60); self.ax.grid(True)
+        wp_x,wp_y=zip(*self.waypoints)
+        self.ax.plot(wp_x,wp_y,'bo',label="WP")
+        self.path_line,=self.ax.plot([],[], 'g-')
 
-    def load_waypoints(self, filename):
-        waypoints = []
-        with open(filename) as f:
-            for row in csv.DictReader(f):
-                waypoints.append((float(row['x']), float(row['y'])))
-        return waypoints
+    def get_state(self):
+        s=self.client.getCarState().kinematics_estimated
+        return s.position, s.linear_velocity
 
-    def get_position(self):
-        state = self.client.getCarState()
-        return state.kinematics_estimated.position, state.kinematics_estimated.linear_velocity
+    def detect_obstacle(self, threshold=5.0, window=20):
+        # depth image
+        resp = self.client.simGetImages([airsim.ImageRequest(1, airsim.ImageType.DepthPlanar, True)])[0]
+        depth = airsim.get_pfm_array(resp)
+        h,w = depth.shape
+        # κεντρικό παράθυρο
+        cy, cx = h//2, w//2
+        win = window//2
+        center = depth[cy-win:cy+win, cx-win:cx+win]
+        mind = np.min(center)
+        return mind < threshold
 
-    def angle_to_target(self, pos, target):
-        return math.atan2(target[1] - pos.y_val, target[0] - pos.x_val)
-
-    def current_heading(self, vel):
-        return math.atan2(vel.y_val, vel.x_val)
-
-    def detect_obstacle_depth(self, threshold=5.0):
-        # get depth image from camera 1
-        responses = self.client.simGetImages([airsim.ImageRequest(1, airsim.ImageType.DepthPlanar, True)])
-        if not responses:
-            return False
-        depth = airsim.get_pfm_array(responses[0])
-        min_dist = float(np.min(depth))
-        return min_dist < threshold
-
-    def drive_to_waypoint(self, tx, ty, tolerance=1.5, timeout=30):
-        start = time.time()
-        path_x, path_y = [], []
-        state = "DRIVE"   # DRIVE, BACKUP, TURN
-        phase_start = start
-
-        while time.time() - start < timeout:
-            pos, vel = self.get_position()
-            ts = time.time()
-            dist = math.hypot(tx - pos.x_val, ty - pos.y_val)
+    def navigate_to(self, tx,ty):
+        t0=time.time()
+        state="DRIVE"; phase=0; last_pos=None; stuck_timer=time.time()
+        path_x,path_y = [],[]
+        while time.time()-t0<30:
+            pos,vel=self.get_state()
+            x,y=pos.x_val,pos.y_val
+            # stuck detection
+            if last_pos:
+                if math.hypot(x-last_pos[0], y-last_pos[1])<0.1:
+                    if time.time()-stuck_timer>3:
+                        # force a big turn
+                        self.controls.steering = random.choice([-1,1])
+                        self.controls.throttle = 0.3
+                        self.client.setCarControls(self.controls)
+                        time.sleep(1)
+                        state="DRIVE"
+                        stuck_timer=time.time()
+                else:
+                    stuck_timer=time.time()
+            last_pos=(x,y)
 
             # state machine
-            if state == "DRIVE":
-                # steer toward target
-                desired = self.angle_to_target(pos, (tx, ty))
-                heading = self.current_heading(vel)
-                err = math.atan2(math.sin(desired - heading), math.cos(desired - heading))
+            if state=="DRIVE":
+                # compute steering toward target
+                ang = math.atan2(ty-y, tx-x)
+                head=math.atan2(vel.y_val, vel.x_val)
+                err=math.atan2(math.sin(ang-head), math.cos(ang-head))
                 self.controls.steering = max(-1, min(1, err))
-                self.controls.throttle = 0.3
+                self.controls.throttle = 0.4
                 self.client.setCarControls(self.controls)
-                # detect obstacle
-                if self.detect_obstacle_depth(threshold=4.0):
-                    state = "BACKUP"
-                    phase_start = ts
-                    self.controls.throttle = 0
-                    self.client.setCarControls(self.controls)
+                # obstacle?
+                if self.detect_obstacle():
+                    state="BACKUP"; phase=time.time()
+                    self.controls.throttle=0; self.client.setCarControls(self.controls)
 
-            elif state == "BACKUP":
-                # reverse for 1s
-                if ts - phase_start < 1.0:
-                    self.controls.throttle = -0.3
-                    self.controls.steering = 0
+            elif state=="BACKUP":
+                # όπισθεν για 1s
+                if time.time()-phase<1.0:
+                    self.controls.throttle=-0.3; self.controls.steering=0
                     self.client.setCarControls(self.controls)
                 else:
-                    state = "TURN"
-                    phase_start = ts
-                    # choose random turn
-                    self.controls.throttle = 0
-                    self.controls.steering = random.choice([-0.7, 0.7])
+                    state="TURN"; phase=time.time()
+                    self.controls.throttle=0; self.controls.steering=random.choice([-0.7,0.7])
                     self.client.setCarControls(self.controls)
 
-            elif state == "TURN":
-                # turn in place for 1s
-                if ts - phase_start < 1.0:
+            elif state=="TURN":
+                # turn in place 1s
+                if time.time()-phase<1.0:
                     self.client.setCarControls(self.controls)
                 else:
-                    state = "DRIVE"
-                    time.sleep(0.3)  # cooldown before driving
+                    state="DRIVE"; time.sleep(0.2)
 
-            # log & visualize
-            path_x.append(pos.x_val); path_y.append(pos.y_val)
-            self.path_line.set_data(path_x, path_y)
-            self.ax.plot(pos.x_val, pos.y_val, 'ro')
-            plt.pause(0.01)
+            # log & plot
+            path_x.append(x); path_y.append(y)
+            self.path_line.set_data(path_x,path_y)
+            self.ax.plot(x,y,'ro'); plt.pause(0.01)
+            self.w.writerow([time.time(), x,y,pos.z_val, state])
 
-            self.csv_writer.writerow([ts, pos.x_val, pos.y_val, pos.z_val, state])
-            print(f"[{ts:.1f}] to ({tx:.1f},{ty:.1f}) pos=({pos.x_val:.1f},{pos.y_val:.1f}) state={state}")
+            # reached?
+            if math.hypot(tx-x, ty-y)<1.5:
+                print(f"Reached ({tx},{ty})"); break
 
-            if dist < tolerance:
-                print(f"Reached ({tx:.1f},{ty:.1f})")
-                break
+            time.sleep(0.1)
 
-            time.sleep(0.2)
-
-        self.stop()
-
-    def navigate_all(self):
-        for i,(x,y) in enumerate(self.waypoints):
-            print(f"\n→ Waypoint {i+1}/{len(self.waypoints)}: ({x},{y})")
-            self.drive_to_waypoint(x, y)
-        self.csv_file.close()
-        plt.legend(); plt.show()
-
-    def stop(self):
-        self.controls.throttle = 0; self.controls.steering = 0
+        # stop
+        self.controls.throttle=0; self.controls.steering=0
         self.client.setCarControls(self.controls)
 
-if __name__ == "__main__":
-    nav = AirSimWaypointNavigatorWithAdvancedAvoidance("waypoints.csv")
-    nav.navigate_all()
+    def run(self):
+        for i,(x,y) in enumerate(self.waypoints):
+            print(f"→ WP {i+1}/{len(self.waypoints)}: ({x},{y})")
+            self.navigate_to(x,y)
+        self.log.close()
+        plt.legend(); plt.show()
+
+if __name__=="__main__":
+    nav=AirSimWaypointNavigatorRobust("waypoints.csv")
+    nav.run()
