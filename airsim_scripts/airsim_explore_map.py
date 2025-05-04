@@ -35,9 +35,10 @@ class RoadNavigator:
         width = img_response.width
         img_rgb = img1d.reshape((height, width, 3))
 
-        # Εμφάνιση της εικόνας με OpenCV
-        cv2.imshow("Segmentation Image", img_rgb)
-        cv2.waitKey(1)  # Περιμένει 1 ms για την επόμενη εικόνα
+        # Εμφάνιση της εικόνας με matplotlib
+        plt.imshow(img_rgb)
+        plt.axis('off')  # Κρύβει τους άξονες
+        plt.show()
 
     def get_segmentation_center_label(self):
         responses = self.client.simGetImages([
