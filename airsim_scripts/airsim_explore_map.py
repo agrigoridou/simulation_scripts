@@ -8,7 +8,7 @@ class RoadNavigator:
     def __init__(self, client, waypoints):
         self.client = client
         self.waypoints = waypoints
-        self.ROAD_LABEL = 246  # Χρώμα δρόμου (βάλε το σωστό αν χρειάζεται)
+        self.ROAD_LABEL = np.array([246, 159, 142])  # Ο RGB χρωματικός κωδικός του δρόμου
         
         self.client.enableApiControl(True)
         self.client.armDisarm(True)
@@ -83,8 +83,11 @@ class RoadNavigator:
         # Ελέγχουμε το κέντρο της εικόνας
         center_pixel = img[height // 2, width // 2]
         
-        # Επιστρέφουμε την ετικέτα του κέντρου
-        return center_pixel
+        # Υπολογίζουμε την απόσταση του χρώματος από το χρώμα του δρόμου
+        color_diff = np.linalg.norm(center_pixel - self.ROAD_LABEL)
+
+        # Επιστρέφουμε την απόσταση του χρώματος
+        return color_diff
 
     def drive_to_waypoint(self, x, y, z=-1):
         state = self.client.getCarState()
@@ -111,10 +114,10 @@ class RoadNavigator:
             self.update_live_plot(vehicle_pos)
 
             # Λήψη της εικόνας για τον έλεγχο του δρόμου
-            label = self.get_segmentation_center_label()
-            print(f"Detected center label: {label}")
-            if label != self.ROAD_LABEL:
-                print(f"Βγήκαμε εκτός δρόμου! Ετικέτα: {label}")
+            color_diff = self.get_segmentation_center_label()
+            print(f"Color difference: {color_diff}")
+            if color_diff > 50:  # Αν η απόσταση χρώματος είναι μεγαλύτερη από κάποιο όριο
+                print("Βγήκαμε εκτός δρόμου!")
                 controls = airsim.CarControls()
                 controls.throttle = 0.0
                 controls.brake = 1.0
